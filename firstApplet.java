@@ -186,7 +186,7 @@ class ActionPanel extends JPanel implements KeyListener, Runnable
 	
 	public void processMovement()
 	{
-		gameItems.moveAll(dx,dy);
+		gameItems.update(dx,dy);
 	}
 
 	public void start()
@@ -289,7 +289,7 @@ class MainGuy extends GameObject
 {		
 	public MainGuy(int x, int y, int collide) 
 	{
-		super(x, y, collide, "C://Users//Chris//Pictures//austin-powers.jpg");
+		super(x, y, collide, "C://Users//Chris//Downloads//asteroidSmall.png");
 		// TODO Auto-generated constructor stub
 	}
 
@@ -303,10 +303,15 @@ class Asteroid extends GameObject
 {
 	int dx,dy;
 	
-	public Asteroid(int x, int y, int collide) 
+	public Asteroid(int x, int y, int collide, int velX, int velY) 
 	{
 		super(x, y, collide,"C://Users//Chris//Downloads//" +
 				"red_dot.png");
+		
+		this.dx=velX;
+		this.dy=velY;
+		
+		
 	}
 		
 	//Precondition: one.x <= two.x, will not collide along y
@@ -354,34 +359,25 @@ class AllThings extends Constants
 	
 	AllThings()
 	{
-		Asteroid one = new Asteroid(0, 0, 5);
+		addAsteroid(0, 0, 5,10, 2);
 		
-		asteroids.add(one);
-		
-		one = new Asteroid(10, 0, 5);
-		
-		asteroids.add(one);
+		addAsteroid(500, 0, 5, -10, 2);	
 		
 		SgtPepper = new MainGuy(0, 0, 5);
 	}
-	
-	public void moveAll(int dx, int dy) 
-	{
-		///MUST MOVE ASTEROIDS
-		
-		
-		//MOVE MAINCHAR
-		SgtPepper.move(dx,dy);
-	}
 
-	void addAsteroid(int x,int y, int radius)
+	void addAsteroid(int x,int y, int radius, int velx, int vely)
 	{
+		Asteroid asteroidToAdd = new Asteroid(x, y, radius,velx, vely);
 		
+		asteroids.add(asteroidToAdd);
 	}
 	
 	void update(int dx, int dy)
 	{
 		//updates based on dx and dy (player's speed)
+		SgtPepper.move(dx,dy);
+		
 		moveAll();
 		
 		Collections.sort(asteroids);
@@ -401,13 +397,6 @@ class AllThings extends Constants
 		}
 	}
 	
-	void createAsteroid(int x, int y)
-	{
-		Asteroid one = new Asteroid(x, y, 5);
-		
-		asteroids.add(one);
-	}
-	
 	void destroyAsteroid(GameObject kill)
 	{
 		asteroids.remove(kill);
@@ -423,6 +412,8 @@ class AllThings extends Constants
 	//Sorted list by x value, so only have to check neighbors
 	void handleAsteroids()
 	{
+		//System.out.println("Handling the asteroid collisions");
+		
 		int i,size = asteroids.size();
 		
 		if(size==1)
@@ -437,12 +428,14 @@ class AllThings extends Constants
 		{
 			if(didCollide(asteroidArray[i], asteroidArray[i+1]))
 			{
+				System.out.println("collided");
+				
 				Asteroid.collideAsteroids(asteroids.get(i), asteroids.get(i+1));				
 			}			
 		}
 	}
 	
-	static boolean didCollide(Asteroid one, Asteroid two)
+	static boolean didCollide(GameObject one, GameObject two)
 	{
 		int distancex = Math.abs(one.x-two.x);
 		
