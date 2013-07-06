@@ -96,7 +96,7 @@ public class firstApplet extends JApplet implements Constants
 
 
 
-class ActionPanel extends JPanel implements KeyListener, Runnable
+class ActionPanel extends JPanel implements KeyListener, Runnable, Constants
 {
 	
 	final int MOVEAMOUNT = 3;
@@ -234,7 +234,7 @@ class ActionPanel extends JPanel implements KeyListener, Runnable
 		while(true)
 		{
 			try {
-				Thread.sleep(40);
+				Thread.sleep(SLEEP_AMOUNT);
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -389,7 +389,9 @@ interface Constants
 	
 	final static int LASER_SPEED = 10;
 	
-	final static int SIZE_OF_ASTEROID = 20;
+	final static int SIZE_OF_ASTEROID = 30;
+	
+	final int SLEEP_AMOUNT = 100;
 }
 
 class AllThings implements Constants
@@ -484,23 +486,36 @@ class AllThings implements Constants
 		
 		for(i=0;i<numLasers;i++)
 		{
-			System.out.println(lasers.get(i).dx);
+			//System.out.println(lasers.get(i).dx);
 			
 			lasers.get(i).move();
 		}
 	}
 	
-	void destroyAsteroid(GameObject kill)
+	void remove(Asteroid kill)
 	{
-		System.out.println("destroy");
+		//System.out.println("destroy asteroid");
 		
 		asteroids.remove(kill);
 		
-		System.out.println("after kill");
+		//System.out.println("after kill asteroid");
 		
 		Collections.sort(asteroids);
 		
-		System.out.println("after destroy");
+		//System.out.println("after destroy asteroid");
+	}
+	
+	void remove(Laser kill)
+	{
+		//System.out.println("destroy laser");
+		
+		lasers.remove(kill);
+		
+		//System.out.println("after kill laser");
+		
+		Collections.sort(lasers);
+		
+		//System.out.println("after destroy laser");
 	}
 	
 	void collisionHandle()
@@ -521,35 +536,71 @@ class AllThings implements Constants
 		{
 			return;
 		}
-		Asteroid asteroidArray[] = new Asteroid[size];
+		//Asteroid asteroidArray[] = new Asteroid[size];
 				
-		asteroidArray = asteroids.toArray(asteroidArray);
+		//asteroidArray = asteroids.toArray(asteroidArray);
 		
-		Laser laserArray [] = new Laser[lasers.size()];
+		//Laser laserArray [] = new Laser[lasers.size()];
 		
-		laserArray = lasers.toArray(laserArray);
+		//laserArray = lasers.toArray(laserArray);
+		
+		int laserLength = lasers.size(),j;
 		
 		for(i=0;i<size-1;i++)
 		{
-			while(indexOfLaser < laserArray.length && laserArray[indexOfLaser].x < asteroidArray[i].x)
+			laserLength = lasers.size();
+			
+			/*while(indexOfLaser < laserLength && lasers.get(indexOfLaser).x < asteroids.get(i).x)
 			{
 				indexOfLaser++;
 			}
 			
-			if(indexOfLaser < laserArray.length && laserHitAsteroid(laserArray[indexOfLaser], asteroidArray[i]))
+			if(indexOfLaser < laserLength && laserHitAsteroid(lasers.get(indexOfLaser), asteroids.get(i)))
 			{
-				destroyAsteroid(asteroids.get(i));	
+				System.out.println("Laser#: " +indexOfLaser);
 				
-				//System.out.println("Should destroy");
+				System.out.println("Asteroid position X: " +asteroids.get(i).x + " Y: "+ asteroids.get(i).y);
 				
-				size --;
+				destroyAsteroid(asteroids.get(i));
+				
+				destroyLaser(lasers.get(indexOfLaser));
+				
+				System.out.println("Should destroy");
+				
+				size = asteroids.size();
 				
 				i--;
 				
 				continue;
-			}
+			}*/
 			
-			if(didCollide(asteroidArray[i], asteroidArray[i+1]) && isOnCollidingPath(asteroidArray[i], asteroidArray[i+1]))
+			for(j=0;j<laserLength;j++)
+			{
+				if(size>0 && laserHitAsteroid(lasers.get(j), asteroids.get(i)))
+				{
+					System.out.println("Laser#: " +j);
+					
+					System.out.println("Asteroid position X: " +asteroids.get(i).x + " Y: "+ asteroids.get(i).y);
+					
+					remove(asteroids.get(i));
+					
+					remove(lasers.get(j));
+					
+					System.out.println("Should destroy");
+					
+					size = asteroids.size();
+					
+					laserLength = lasers.size();
+					
+					i--;
+					
+					break;
+				}
+			}
+			System.out.println("size = "+ size+ " i = "+i);
+			System.out.println(" real size = "+ asteroids.size()+ " i = "+i);
+			
+			if(didCollide(asteroids.get(i), asteroids.get(i+1)) && isOnCollidingPath(asteroids.get(i), asteroids.get(i+1)))
 			{
 				//System.out.println("collided");
 				
@@ -557,9 +608,12 @@ class AllThings implements Constants
 			}
 			
 			sideCollisionHandle(asteroids.get(i));
+			
+			System.out.println(" after");
+			
+			size = asteroids.size();
 		}
-		
-		sideCollisionHandle(asteroids.get(i));
+		sideCollisionHandle(asteroids.get(size-1));
 	}
 	
 	//for asteroids, to see if they need to bounce
@@ -572,7 +626,7 @@ class AllThings implements Constants
 		return velXone > 0 && velXtwo < 0;
 	}
 	
-	static void sideCollisionHandle(GameObject collider)
+	void sideCollisionHandle(Asteroid collider)
 	{
 		if(collider.x <=0)
 		{
@@ -583,12 +637,19 @@ class AllThings implements Constants
 		{
 			collider.dx = -Math.abs(collider.dx) ;
 		}
+		
+		if(collider.y > SCREEN_SIZE)
+		{
+			remove(collider);
+		}
 	}
 	
 	//laser is >= x value of the asteroid
 	static boolean laserHitAsteroid(Laser laser, Asteroid asteroid)
 	{		
-		return laser.y-asteroid.y <= SIZE_OF_ASTEROID && laser.x -asteroid.x <= SIZE_OF_ASTEROID;
+		int yDistance = laser.y-asteroid.y, xDistance = laser.x -asteroid.x;
+		
+		return Math.abs(yDistance) <= SIZE_OF_ASTEROID && xDistance <= SIZE_OF_ASTEROID;
 	}
 	static boolean didCollide(GameObject one, GameObject two)
 	{
