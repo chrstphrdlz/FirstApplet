@@ -207,23 +207,18 @@ class ActionPanel extends JPanel implements KeyListener, Runnable
 		while(true)
 		{
 			try {
-				Thread.sleep(5);
+				Thread.sleep(40);
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-						
-			if(needUpdating)
-			{
 				
 				processMovement();				
 				
 				repaint();				
 
 				//System.out.println("Should paint");
-			}
 			
-			needUpdating=false;
 		}
 	}
 }
@@ -348,7 +343,7 @@ class Asteroid extends GameObject
 
 class Constants
 {
-	final static int ASTEROID_COLLIDE_RADIUS = 5;
+	final static int ASTEROID_COLLIDE_RADIUS = 50;
 }
 
 class AllThings extends Constants
@@ -428,7 +423,7 @@ class AllThings extends Constants
 		{
 			if(didCollide(asteroidArray[i], asteroidArray[i+1]))
 			{
-				System.out.println("collided");
+				//System.out.println("collided");
 				
 				Asteroid.collideAsteroids(asteroids.get(i), asteroids.get(i+1));				
 			}			
