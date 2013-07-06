@@ -303,7 +303,6 @@ abstract class GameObject implements Comparable<GameObject>
 		g.drawImage(this.picture, this.x, this.y, null);
 	}
 	
-	@Override
 	public int compareTo(GameObject other) 
 	{
 		return this.x-other.x;
@@ -497,9 +496,11 @@ class AllThings implements Constants
 		
 		asteroids.remove(kill);
 		
-		System.out.println("after");
+		System.out.println("after kill");
 		
 		Collections.sort(asteroids);
+		
+		System.out.println("after destroy");
 	}
 	
 	void collisionHandle()
@@ -537,9 +538,11 @@ class AllThings implements Constants
 			
 			if(indexOfLaser < laserArray.length && laserHitAsteroid(laserArray[indexOfLaser], asteroidArray[i]))
 			{
-				//destroyAsteroid(asteroids.get(i));	
+				destroyAsteroid(asteroids.get(i));	
 				
-				System.out.println("Should destroy");
+				//System.out.println("Should destroy");
+				
+				size --;
 				
 				i--;
 				
