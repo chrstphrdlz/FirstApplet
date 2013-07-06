@@ -35,7 +35,7 @@ import sun.audio.ContinuousAudioDataStream;
 import sun.tools.jar.Main;
 
 
-public class firstApplet extends JApplet 
+public class firstApplet extends JApplet implements Constants
 {
 	ActionPanel mainPanel;
 	
@@ -45,7 +45,7 @@ public class firstApplet extends JApplet
 	
 	public void init()
 	{		
-		setSize(500, 500);
+		setSize(SCREEN_SIZE, SCREEN_SIZE);
 		
 		mainPanel=new ActionPanel();		
 		
@@ -145,7 +145,8 @@ class ActionPanel extends JPanel implements KeyListener, Runnable
 	}
 	
 	@Override
-	public void keyPressed(KeyEvent e) {
+	public void keyPressed(KeyEvent e) 
+	{
 						
 		int key = e.getKeyCode();
 		
@@ -173,7 +174,8 @@ class ActionPanel extends JPanel implements KeyListener, Runnable
 	}
 
 	@Override
-	public void keyReleased(KeyEvent e) {
+	public void keyReleased(KeyEvent e) 
+	{
 		// TODO Auto-generated method stub
 		dx=0;
 		dy=0;
@@ -203,8 +205,6 @@ class ActionPanel extends JPanel implements KeyListener, Runnable
 		
 		this.addKeyListener(this);
 		
-		int i=0;
-		
 		while(true)
 		{
 			try {
@@ -227,7 +227,7 @@ class ActionPanel extends JPanel implements KeyListener, Runnable
 
 abstract class GameObject implements Comparable<GameObject>
 {
-	int x,y;
+	int x,y,dx,dy;
 	
 	int collideRadius;
 	
@@ -252,9 +252,7 @@ abstract class GameObject implements Comparable<GameObject>
 		this.y=y;
 		
 		this.collideRadius = collideRadius;
-	}
-	
-	
+	}	
 	
 	public abstract void collideAction(GameObject other);
 	//will be different for each class
@@ -264,7 +262,7 @@ abstract class GameObject implements Comparable<GameObject>
 		return x+collideRadius<0 || x-collideRadius>width || y-collideRadius > height || y+collideRadius<0;
 	}
 	
-	void move(int dx, int dy)
+	void move()
 	{
 		x+=dx;
 		y+=dy;
@@ -281,6 +279,7 @@ abstract class GameObject implements Comparable<GameObject>
 		return this.x-other.x;
 	}
 }
+
 class MainGuy extends GameObject
 {		
 	public MainGuy(int x, int y, int collide) 
@@ -297,7 +296,7 @@ class MainGuy extends GameObject
 
 class Asteroid extends GameObject
 {
-	int dx,dy;
+	
 	
 	public Asteroid(int x, int y, int collide, int velX, int velY) 
 	{
@@ -342,12 +341,14 @@ class Asteroid extends GameObject
 }
 
 
-class Constants
+interface Constants
 {
 	final static int ASTEROID_COLLIDE_RADIUS = 50;
+	
+	final static int SCREEN_SIZE=500;
 }
 
-class AllThings extends Constants
+class AllThings implements Constants
 {	
 	ArrayList <Asteroid> asteroids = new ArrayList<Asteroid>();
 	
@@ -377,13 +378,17 @@ class AllThings extends Constants
 	{
 		keepAddingAsteroids();
 		//updates based on dx and dy (player's speed)
-		SgtPepper.move(dx,dy);
 		
-		moveAll();
+		
+		SgtPepper.dx = dx;
+		
+		SgtPepper.dy=dy;		
 		
 		Collections.sort(asteroids);
 		
-		collisionHandle();		
+		collisionHandle();			
+
+		moveAll();
 	}
 	
 	void keepAddingAsteroids()
@@ -411,6 +416,8 @@ class AllThings extends Constants
 	
 	void moveAll()
 	{
+		SgtPepper.move();
+		
 		int i, numAsteroids;
 		
 		numAsteroids = asteroids.size();
@@ -455,8 +462,12 @@ class AllThings extends Constants
 				//System.out.println("collided");
 				
 				Asteroid.collideAsteroids(asteroids.get(i), asteroids.get(i+1));				
-			}			
+			}
+			
+			sideCollisionHandle(asteroids.get(i));
 		}
+		
+		sideCollisionHandle(asteroids.get(i));
 	}
 	
 	//for asteroids, to see if they need to bounce
@@ -468,6 +479,20 @@ class AllThings extends Constants
 		
 		return velXone > 0 && velXtwo < 0;
 	}
+	
+	static void sideCollisionHandle(GameObject collider)
+	{
+		if(collider.x <=0)
+		{
+			collider.dx = Math.abs(collider.dx) ;
+		}
+		
+		else if(collider.x + ASTEROID_COLLIDE_RADIUS >= SCREEN_SIZE)
+		{
+			collider.dx = -Math.abs(collider.dx) ;
+		}
+	}
+	
 	static boolean didCollide(GameObject one, GameObject two)
 	{
 		int distancex = Math.abs(one.x-two.x);
