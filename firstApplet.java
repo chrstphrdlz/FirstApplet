@@ -13,6 +13,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -104,7 +105,7 @@ class ActionPanel extends JPanel implements KeyListener, Runnable
 	
 	final int PAINT_HEIGHT = 500;
 	
-	volatile boolean needUpdating = true;
+	volatile boolean shootLaser  = false;
 	
 	AllThings gameItems;
 	
@@ -166,9 +167,10 @@ class ActionPanel extends JPanel implements KeyListener, Runnable
 		{
 			dx=MOVEAMOUNT;
 		}
-		// TODO Auto-generated method stub
-		
-		needUpdating = true;
+		else if(key==KeyEvent.VK_SPACE)
+		{
+			shootLaser=true;
+		}
 		
 		//System.out.println("needUpdating listening = " +needUpdating);
 	}
@@ -182,14 +184,38 @@ class ActionPanel extends JPanel implements KeyListener, Runnable
 	}
 
 	@Override
-	public void keyTyped(KeyEvent e) {
-
+	public void keyTyped(KeyEvent e) 
+	{
+		int key = e.getKeyCode();
+		
+		if(key==KeyEvent.VK_UP)
+		{
+			dy=-MOVEAMOUNT;
+		}
+		else if (key==KeyEvent.VK_DOWN)
+		{
+			dy=MOVEAMOUNT;
+		}
+		else if (key==KeyEvent.VK_LEFT)
+		{
+			dx=-MOVEAMOUNT;
+		}
+		else if (key==KeyEvent.VK_RIGHT)
+		{
+			dx=MOVEAMOUNT;
+		}
+		else if(key==KeyEvent.VK_SPACE)
+		{
+			shootLaser=true;
+		}
 		
 	}
 	
 	public void processMovement()
 	{
-		gameItems.update(dx,dy);
+		gameItems.update(dx,dy,shootLaser);
+		
+		this.shootLaser=false;
 	}
 
 	public void start()
@@ -233,7 +259,7 @@ abstract class GameObject implements Comparable<GameObject>
 	
 	BufferedImage picture;
 	
-	public GameObject(int x,int y, int collideRadius, String imageLocation)
+	public GameObject(int x,int y, int dx, int dy, int collideRadius, String imageLocation)
 	{
 		//need to get picture
 		picture = null;
@@ -252,6 +278,10 @@ abstract class GameObject implements Comparable<GameObject>
 		this.y=y;
 		
 		this.collideRadius = collideRadius;
+		
+		this.dx = dx;
+		
+		this.dy = dy;
 	}	
 	
 	public abstract void collideAction(GameObject other);
@@ -284,7 +314,7 @@ class MainGuy extends GameObject
 {		
 	public MainGuy(int x, int y, int collide) 
 	{
-		super(x, y, collide, "C://Users//Chris//Downloads//asteroidSmall.png");
+		super(x, y,0,0, collide, "C://Users//Chris//Downloads//asteroidSmall.png");
 		// TODO Auto-generated constructor stub
 	}
 
@@ -294,19 +324,30 @@ class MainGuy extends GameObject
 	}
 }
 
+class Laser extends GameObject
+{
+
+	public Laser(int x, int y,int dx, int dy, int collideRadius, String imageLocation) 
+	{
+		super(x, y,dx,dy, collideRadius, imageLocation);
+	}
+
+	@Override
+	public void collideAction(GameObject other)
+	{
+		
+	}
+	
+}
+
 class Asteroid extends GameObject
 {
 	
 	
 	public Asteroid(int x, int y, int collide, int velX, int velY) 
 	{
-		super(x, y, collide,"C://Users//Chris//Downloads//" +
+		super(x, y,velX,velY, collide,"C://Users//Chris//Downloads//" +
 				"red_dot.png");
-		
-		this.dx=velX;
-		this.dy=velY;
-		
-		
 	}
 		
 	//Precondition: one.x <= two.x, will not collide along y
@@ -346,11 +387,17 @@ interface Constants
 	final static int ASTEROID_COLLIDE_RADIUS = 50;
 	
 	final static int SCREEN_SIZE=500;
+	
+	final static int LASER_SPEED = 10;
+	
+	final static int SIZE_OF_ASTEROID = 20;
 }
 
 class AllThings implements Constants
 {	
 	ArrayList <Asteroid> asteroids = new ArrayList<Asteroid>();
+		
+	ArrayList <Laser> lasers = new ArrayList<Laser>();
 	
 	MainGuy SgtPepper;
 	
@@ -364,7 +411,7 @@ class AllThings implements Constants
 		
 		addAsteroid(300, 0, 5, 10, 5);	
 		
-		SgtPepper = new MainGuy(250, 0, 5);
+		SgtPepper = new MainGuy(250, 470, 5);
 	}
 
 	void addAsteroid(int x,int y, int radius, int velx, int vely)
@@ -374,11 +421,22 @@ class AllThings implements Constants
 		asteroids.add(asteroidToAdd);
 	}
 	
-	void update(int dx, int dy)
+	void shootLaser()
 	{
+		Laser laserToAdd = new Laser(SgtPepper.x, SgtPepper.y,SgtPepper.dx,SgtPepper.dy - LASER_SPEED, ASTEROID_COLLIDE_RADIUS,"C://Users//Chris//Pictures//laserImage.png");
+ 
+		lasers.add(laserToAdd);
+	}
+	
+	void update(int dx, int dy, boolean shootLaser)
+	{
+		if(shootLaser)
+		{
+			shootLaser();
+		}
+		
 		keepAddingAsteroids();
 		//updates based on dx and dy (player's speed)
-		
 		
 		SgtPepper.dx = dx;
 		
@@ -403,10 +461,6 @@ class AllThings implements Constants
 		
 		randomVY=rand.nextInt()%2+5;
 		
-		if(randomVY<0)
-		{
-			System.out.println(randomVY);
-		}
 		
 		if(rand.nextInt()%5==1)
 		{
@@ -422,15 +476,30 @@ class AllThings implements Constants
 		
 		numAsteroids = asteroids.size();
 		
+		int numLasers = lasers.size();
+		
 		for(i=0;i<numAsteroids;i++)
 		{
 			asteroids.get(i).move();
+		}
+		
+		for(i=0;i<numLasers;i++)
+		{
+			System.out.println(lasers.get(i).dx);
+			
+			lasers.get(i).move();
 		}
 	}
 	
 	void destroyAsteroid(GameObject kill)
 	{
+		System.out.println("destroy");
+		
 		asteroids.remove(kill);
+		
+		System.out.println("after");
+		
+		Collections.sort(asteroids);
 	}
 	
 	void collisionHandle()
@@ -445,7 +514,7 @@ class AllThings implements Constants
 	{
 		//System.out.println("Handling the asteroid collisions");
 		
-		int i,size = asteroids.size();
+		int i,size = asteroids.size(), indexOfLaser=0;
 		
 		if(size==1)
 		{
@@ -455,8 +524,28 @@ class AllThings implements Constants
 				
 		asteroidArray = asteroids.toArray(asteroidArray);
 		
+		Laser laserArray [] = new Laser[lasers.size()];
+		
+		laserArray = lasers.toArray(laserArray);
+		
 		for(i=0;i<size-1;i++)
 		{
+			while(indexOfLaser < laserArray.length && laserArray[indexOfLaser].x < asteroidArray[i].x)
+			{
+				indexOfLaser++;
+			}
+			
+			if(indexOfLaser < laserArray.length && laserHitAsteroid(laserArray[indexOfLaser], asteroidArray[i]))
+			{
+				//destroyAsteroid(asteroids.get(i));	
+				
+				System.out.println("Should destroy");
+				
+				i--;
+				
+				continue;
+			}
+			
 			if(didCollide(asteroidArray[i], asteroidArray[i+1]) && isOnCollidingPath(asteroidArray[i], asteroidArray[i+1]))
 			{
 				//System.out.println("collided");
@@ -493,6 +582,11 @@ class AllThings implements Constants
 		}
 	}
 	
+	//laser is >= x value of the asteroid
+	static boolean laserHitAsteroid(Laser laser, Asteroid asteroid)
+	{		
+		return laser.y-asteroid.y <= SIZE_OF_ASTEROID && laser.x -asteroid.x <= SIZE_OF_ASTEROID;
+	}
 	static boolean didCollide(GameObject one, GameObject two)
 	{
 		int distancex = Math.abs(one.x-two.x);
@@ -535,11 +629,17 @@ class AllThings implements Constants
 	{
 		//System.out.println("start painting objects");
 		
-		int i, numItems = this.asteroids.size();
+		int i, numAsteroids = this.asteroids.size(), numLasers = this.lasers.size();
 		
-		for(i=0;i<numItems;i++)
+		
+		for(i=0;i<numAsteroids;i++)
 		{
 			this.asteroids.get(i).drawObject(g);
+		}
+		
+		for(i=0;i<numLasers;i++)
+		{
+			this.lasers.get(i).drawObject(g);
 		}
 		
 		this.SgtPepper.drawObject(g);
