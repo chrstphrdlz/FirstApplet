@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
+import java.util.Random;
 
 import javax.imageio.ImageIO;
 import javax.print.DocFlavor.URL;
@@ -97,7 +98,7 @@ public class firstApplet extends JApplet
 class ActionPanel extends JPanel implements KeyListener, Runnable
 {
 	
-	final int MOVEAMOUNT = 1;
+	final int MOVEAMOUNT = 3;
 	
 	final int PAINT_WIDTH = 500;
 	
@@ -354,11 +355,15 @@ class AllThings extends Constants
 	
 	AllThings()
 	{
-		addAsteroid(0, 0, 5,10, 2);
+		addAsteroid(0, 0, 5,10, 5);
 		
-		addAsteroid(500, 0, 5, -10, 2);	
+		addAsteroid(500, 0, 5, -10, 5);	
 		
-		SgtPepper = new MainGuy(0, 0, 5);
+		addAsteroid(200, 0, 5, -10, 5);	
+		
+		addAsteroid(300, 0, 5, 10, 5);	
+		
+		SgtPepper = new MainGuy(250, 0, 5);
 	}
 
 	void addAsteroid(int x,int y, int radius, int velx, int vely)
@@ -370,6 +375,7 @@ class AllThings extends Constants
 	
 	void update(int dx, int dy)
 	{
+		keepAddingAsteroids();
 		//updates based on dx and dy (player's speed)
 		SgtPepper.move(dx,dy);
 		
@@ -378,6 +384,29 @@ class AllThings extends Constants
 		Collections.sort(asteroids);
 		
 		collisionHandle();		
+	}
+	
+	void keepAddingAsteroids()
+	{
+		Random rand = new Random();
+		
+		int randomX,randomVX, randomVY;
+		
+		randomX=rand.nextInt()%500;
+
+		randomVX=rand.nextInt()%5;
+		
+		randomVY=rand.nextInt()%2+5;
+		
+		if(randomVY<0)
+		{
+			System.out.println(randomVY);
+		}
+		
+		if(rand.nextInt()%5==1)
+		{
+			addAsteroid(randomX, 0, ASTEROID_COLLIDE_RADIUS, randomVX, randomVY);	
+		}
 	}
 	
 	void moveAll()
@@ -421,7 +450,7 @@ class AllThings extends Constants
 		
 		for(i=0;i<size-1;i++)
 		{
-			if(didCollide(asteroidArray[i], asteroidArray[i+1]))
+			if(didCollide(asteroidArray[i], asteroidArray[i+1]) && isOnCollidingPath(asteroidArray[i], asteroidArray[i+1]))
 			{
 				//System.out.println("collided");
 				
@@ -430,6 +459,15 @@ class AllThings extends Constants
 		}
 	}
 	
+	//for asteroids, to see if they need to bounce
+	static boolean isOnCollidingPath(Asteroid one, Asteroid two)
+	{
+		int velXone = one.dx;
+		
+		int velXtwo = two.dx;	
+		
+		return velXone > 0 && velXtwo < 0;
+	}
 	static boolean didCollide(GameObject one, GameObject two)
 	{
 		int distancex = Math.abs(one.x-two.x);
@@ -449,7 +487,23 @@ class AllThings extends Constants
 	
 	void handlePlayer()
 	{
+		int i,size = asteroids.size();
 		
+		if(size==1)
+		{
+			return;
+		}
+		Asteroid asteroidArray[] = new Asteroid[size];
+				
+		asteroidArray = asteroids.toArray(asteroidArray);
+		
+		for(i=0;i<size;i++)
+		{
+			if(didCollide(asteroidArray[i], SgtPepper))
+			{
+				//System.out.println("collided with player");							
+			}			
+		}
 	}
 	
 	public void paintObjects(Graphics g)
