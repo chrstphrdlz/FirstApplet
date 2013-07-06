@@ -27,7 +27,10 @@ import javax.sound.sampled.Clip;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.UnsupportedAudioFileException;
 import javax.swing.JApplet;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
 
 import sun.audio.AudioData;
 import sun.audio.AudioPlayer;
@@ -114,9 +117,14 @@ class ActionPanel extends JPanel implements KeyListener, Runnable, Constants
 	
 	Thread runner;
 	
+	ScoreBoard score;
+	
 	public void init()
 	{
-
+		score = new ScoreBoard();
+		
+		this.add(score);
+		
 		gameItems = new AllThings();
 		
 		repaint();
@@ -144,6 +152,8 @@ class ActionPanel extends JPanel implements KeyListener, Runnable, Constants
 	    g.fillRect(0, 0, SCREEN_SIZE, SCREEN_SIZE);
 		
 		g.setColor(Color.BLUE);
+		
+		score.paint(g);
 		
 		gameItems.paintObjects(g);
 	}
@@ -230,6 +240,11 @@ class ActionPanel extends JPanel implements KeyListener, Runnable, Constants
 		gameItems.update(dx,dy,shootLaser);
 		
 		this.shootLaser=false;
+		
+		if(this.gameItems.collisionThisTurn)
+		{
+			score.addToScore(SCORE_AMOUNT_ONE);
+		}
 	}
 
 	public void start()
@@ -305,7 +320,6 @@ abstract class GameObject implements Comparable<GameObject>
 		this.dy = dy;
 	}	
 	
-	public abstract void collideAction(GameObject other);
 	//will be different for each class
 
 	public boolean outOfBoundaries(int width, int height)
@@ -338,7 +352,7 @@ class MainGuy extends GameObject
 		// TODO Auto-generated constructor stub
 	}
 
-	public void collideAction(GameObject other) 
+	public void collideAction() 
 	{
 		System.exit(0);		
 	}
@@ -350,12 +364,6 @@ class Laser extends GameObject
 	public Laser(int x, int y,int dx, int dy, int collideRadius, String imageLocation) 
 	{
 		super(x, y,dx,dy, collideRadius, imageLocation);
-	}
-
-	@Override
-	public void collideAction(GameObject other)
-	{
-		
 	}
 	
 }
@@ -373,6 +381,8 @@ class Asteroid extends GameObject
 	//Precondition: one.x <= two.x, will not collide along y
 	static void collideAsteroids(Asteroid one, Asteroid two)
 	{
+		System.out.println("bounced");
+		
 		one.bouncex();
 		two.bouncex();
 	}
@@ -393,29 +403,48 @@ class Asteroid extends GameObject
 		dy=-dy;
 	}
 
-	@Override
-	public void collideAction(GameObject other) 
-	{
-		// TODO Auto-generated method stub
-		
-	}
-
 }
 
 
 interface Constants
 {
-	final static int ASTEROID_COLLIDE_RADIUS = 50;
+	final static int ASTEROID_COLLIDE_RADIUS = 23;
 	
 	final static int SCREEN_SIZE=500;
 	
 	final static int LASER_SPEED = 10;
 	
-	final static int SIZE_OF_ASTEROID = 30;
+	final static int SIZE_OF_ASTEROID = 20;
 	
-	final int SLEEP_AMOUNT = 100;
+	final int SLEEP_AMOUNT = 200;
 	
 	final int ASTEROID_GENERATION_RATE = 7;
+	
+	final int SCORE_AMOUNT_ONE = 100;
+	
+	final int SHIP_SIZE = 38;
+	
+	final int LASER_SIZE = 20;
+}
+
+class ScoreBoard extends JTextField
+{
+	int score;
+	
+	public ScoreBoard()
+	{
+		score=0;
+	}
+	
+	public void addToScore(int x)
+	{
+		score+=x;
+	}
+	
+	public void paint(Graphics g)
+	{
+		g.drawString("Your score : " + score, 0, 10);
+	}
 }
 
 class AllThings implements Constants
@@ -425,6 +454,8 @@ class AllThings implements Constants
 	ArrayList <Laser> lasers = new ArrayList<Laser>();
 	
 	MainGuy SgtPepper;
+	
+	boolean collisionThisTurn = false;
 	
 	AllThings()
 	{
@@ -448,13 +479,15 @@ class AllThings implements Constants
 	
 	void shootLaser()
 	{
-		Laser laserToAdd = new Laser(SgtPepper.x + 19, SgtPepper.y,SgtPepper.dx,SgtPepper.dy - LASER_SPEED, ASTEROID_COLLIDE_RADIUS,"C://Users//Chris//Pictures//laserImage.png");
+		Laser laserToAdd = new Laser(SgtPepper.x + SHIP_SIZE/2-LASER_SIZE/2, SgtPepper.y,SgtPepper.dx,SgtPepper.dy - LASER_SPEED, ASTEROID_COLLIDE_RADIUS,"C://Users//Chris//Downloads//laser_bullet.png");
  
 		lasers.add(laserToAdd);
 	}
 	
 	void update(int dx, int dy, boolean shootLaser)
 	{
+		collisionThisTurn = false;
+		
 		if(shootLaser)
 		{
 			shootLaser();
@@ -559,7 +592,7 @@ class AllThings implements Constants
 	{
 		//System.out.println("Handling the asteroid collisions");
 		
-		int i,size = asteroids.size(), indexOfLaser=0;
+		int i,size = asteroids.size();
 		
 		if(size==1)
 		{
@@ -579,30 +612,6 @@ class AllThings implements Constants
 		{
 			laserLength = lasers.size();
 			
-			/*while(indexOfLaser < laserLength && lasers.get(indexOfLaser).x < asteroids.get(i).x)
-			{
-				indexOfLaser++;
-			}
-			
-			if(indexOfLaser < laserLength && laserHitAsteroid(lasers.get(indexOfLaser), asteroids.get(i)))
-			{
-				System.out.println("Laser#: " +indexOfLaser);
-				
-				System.out.println("Asteroid position X: " +asteroids.get(i).x + " Y: "+ asteroids.get(i).y);
-				
-				destroyAsteroid(asteroids.get(i));
-				
-				destroyLaser(lasers.get(indexOfLaser));
-				
-				System.out.println("Should destroy");
-				
-				size = asteroids.size();
-				
-				i--;
-				
-				continue;
-			}*/
-			
 			for(j=0;j<laserLength;j++)
 			{
 				
@@ -611,6 +620,8 @@ class AllThings implements Constants
 					//System.out.println("Laser#: " +j);
 					
 					//System.out.println("Asteroid position X: " +asteroids.get(i).x + " Y: "+ asteroids.get(i).y);
+					
+					collisionThisTurn = true;
 					
 					remove(asteroids.get(i));
 					
@@ -627,15 +638,23 @@ class AllThings implements Constants
 					break;
 				}
 			}
+			
 			//System.out.println("size = "+ size+ " i = "+i);
 			
 			//System.out.println(" real size = "+ asteroids.size()+ " i = "+i);
 			
 			if(i != size-1 && didCollide(asteroids.get(i), asteroids.get(i+1)) && isOnCollidingPath(asteroids.get(i), asteroids.get(i+1)))
 			{
-				//System.out.println("collided");
+				System.out.println("collided");
 				
 				Asteroid.collideAsteroids(asteroids.get(i), asteroids.get(i+1));				
+			}
+			
+			if(didCollide(asteroids.get(i), SgtPepper))
+			{
+				System.out.println("Ship is destroyed");
+				
+				SgtPepper.collideAction();		
 			}
 			
 			sideCollisionHandle(asteroids.get(i));
@@ -679,7 +698,7 @@ class AllThings implements Constants
 	{		
 		int yDistance = laser.y-asteroid.y, xDistance = laser.x -asteroid.x;
 		
-		return Math.abs(yDistance) <= SIZE_OF_ASTEROID && xDistance <= SIZE_OF_ASTEROID && xDistance > 0;
+		return Math.abs(yDistance) <= SIZE_OF_ASTEROID && xDistance <= SIZE_OF_ASTEROID/2 && xDistance > - SIZE_OF_ASTEROID/2;
 	}
 	static boolean didCollide(GameObject one, GameObject two)
 	{
