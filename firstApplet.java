@@ -37,7 +37,48 @@ import sun.audio.AudioPlayer;
 import sun.audio.AudioStream;
 import sun.audio.ContinuousAudioDataStream;
 import sun.tools.jar.Main;
+import java.io.*;
+import javax.sound.sampled.*;
 
+
+interface Constants
+{   
+	final int MOVEAMOUNT = 6;
+	
+	final int PAINT_WIDTH = 500;
+	
+	final int PAINT_HEIGHT = 500;
+	
+	final int ASTEROID_COLLIDE_RADIUS = 30;
+	
+	final int SHIP_COLLIDE_RADIUS = 20;
+	
+	final int SCREEN_SIZE = 500;
+	
+	final int LASER_SPEED = 10;
+	
+	final int SIZE_OF_ASTEROID = 20;
+	
+	final int SLEEP_AMOUNT = 75;
+	
+	final int ASTEROID_GENERATION_RATE = 7;
+	
+	final int SCORE_AMOUNT_ONE = 100;
+	
+	final int SHIP_SIZE = 38;
+	
+	final int MAX_ASTEROIDS_GENERATED = 20;
+	
+	final int LASER_SIZE = 20;
+	
+	final int FRAMES_PER_GRNERATION = 5;
+	
+	final String BackgroundString = "C://Users//Chris//Downloads//490497-n300_irac.jpg";
+	
+	final String smallAsteroidString = "C://Users//Chris//Downloads//oie_transparent.png";
+	
+	final String SpaceshipString = "C://Users//Chris//Downloads//Ship.png";
+}
 
 public class firstApplet extends JApplet implements Constants
 {
@@ -69,29 +110,42 @@ public class firstApplet extends JApplet implements Constants
 	
 	public void start()
 	{		
-		mainPanel.start();
+		music();
 		
-		//music();
+		mainPanel.start();		
 	}
 
 	public void music()
 	{
 		
-		  new Thread(new Runnable() {
-			  // The wrapper thread is unnecessary, unless it blocks on the
-			  // Clip finishing; see comments.
-			    public void run() {
-			      try {
-			        Clip clip = AudioSystem.getClip();
-			        AudioInputStream inputStream = AudioSystem.getAudioInputStream(
-			        Main.class.getResourceAsStream("C://Users//Chris//Documents//GitHub//applet//music.wav"));
-			  	  clip.open(inputStream);
-			        clip.start(); 
-			      } catch (Exception e) {
-			        System.err.println(e.getMessage());
-			      }
-			    }
-			  }).start();
+		try 
+		{
+		    File yourFile = new File("C://Users//Chris//Documents//GitHub//applet//music.wav");
+		    
+		    AudioInputStream stream;
+		    
+		    AudioFormat format;
+		    
+		    DataLine.Info info;
+		    
+		    Clip clip;
+
+		    stream = AudioSystem.getAudioInputStream(yourFile);
+		    
+		    format = stream.getFormat();
+		    
+		    info = new DataLine.Info(Clip.class, format);
+		    
+		    clip = (Clip) AudioSystem.getLine(info);
+		    
+		    clip.open(stream);
+		    
+		      
+		    clip.start();
+		}
+		catch (Exception e) {
+		   System.out.println("No music for you!");
+		}
 	}
 }
 
@@ -100,12 +154,6 @@ public class firstApplet extends JApplet implements Constants
 
 class ActionPanel extends JPanel implements KeyListener, Runnable, Constants
 {
-	
-	final int MOVEAMOUNT = 3;
-	
-	final int PAINT_WIDTH = 500;
-	
-	final int PAINT_HEIGHT = 500;
 	
 	volatile boolean shootLaser  = false;
 	
@@ -147,15 +195,33 @@ class ActionPanel extends JPanel implements KeyListener, Runnable, Constants
 		
 		//System.out.println("paint");
 		
-		g.setColor(Color.black);
-		
-	    g.fillRect(0, 0, SCREEN_SIZE, SCREEN_SIZE);
+		paintBackground(g);
 		
 		g.setColor(Color.BLUE);
 		
 		score.paint(g);
 		
 		gameItems.paintObjects(g);
+		
+		
+	}
+	
+	public void paintBackground(Graphics g)
+	{
+		BufferedImage picture=null;
+		
+		try 
+		{
+			picture = ImageIO.read(new File(BackgroundString));
+		} 
+		catch (IOException e) 
+		{
+			System.out.println("DID NOT GET FILE");
+			
+			e.printStackTrace();
+		}
+		
+		g.drawImage(picture, 0, 0, null);
 	}
 	
 	@Override
@@ -287,7 +353,7 @@ class ActionPanel extends JPanel implements KeyListener, Runnable, Constants
 }
 
 
-abstract class GameObject implements Comparable<GameObject>
+abstract class GameObject implements Comparable<GameObject>, Constants
 {
 	int x,y,dx,dy;
 	
@@ -348,7 +414,7 @@ class MainGuy extends GameObject
 {		
 	public MainGuy(int x, int y, int collide) 
 	{
-		super(x, y,0,0, collide, "C://Users//Chris//Downloads//Ship.png");
+		super(x, y,0,0, collide,SpaceshipString );
 		// TODO Auto-generated constructor stub
 	}
 
@@ -374,8 +440,7 @@ class Asteroid extends GameObject
 	
 	public Asteroid(int x, int y, int collide, int velX, int velY) 
 	{
-		super(x, y,velX,velY, collide,"C://Users//Chris//Downloads//" +
-				"oie_transparent.png");
+		super(x, y,velX,velY, collide,smallAsteroidString);		
 	}
 		
 	//Precondition: one.x <= two.x, will not collide along y
@@ -403,30 +468,6 @@ class Asteroid extends GameObject
 		dy=-dy;
 	}
 
-}
-
-
-interface Constants
-{
-	final static int ASTEROID_COLLIDE_RADIUS = 30;//12;
-	
-	final static int SHIP_COLLIDE_RADIUS = 20;
-	
-	final static int SCREEN_SIZE = 500;
-	
-	final static int LASER_SPEED = 10;
-	
-	final static int SIZE_OF_ASTEROID = 20;
-	
-	final int SLEEP_AMOUNT = 200;
-	
-	final int ASTEROID_GENERATION_RATE = 7;
-	
-	final int SCORE_AMOUNT_ONE = 100;
-	
-	final int SHIP_SIZE = 38;
-	
-	final int LASER_SIZE = 20;
 }
 
 class ScoreBoard extends JTextField
@@ -459,8 +500,12 @@ class AllThings implements Constants
 	
 	boolean collisionThisTurn = false;
 	
+	int numFrames;
+	
 	AllThings()
 	{
+		numFrames = 0;
+		
 		addAsteroid(0, 0, 10, 5);
 		
 		addAsteroid(500, 0, -10, 5);	
@@ -470,6 +515,65 @@ class AllThings implements Constants
 		addAsteroid(300, 0, 10, 5);	
 		
 		SgtPepper = new MainGuy(250, 470, SHIP_COLLIDE_RADIUS);
+	}
+	
+	void update(int dx, int dy, boolean shootLaser)
+	{
+		collisionThisTurn = false;
+		
+		if(shootLaser)
+		{
+			shootLaser();
+		}
+		
+		
+		if(numFrames%FRAMES_PER_GRNERATION==0)
+		{
+			keepAddingAsteroids();
+		}
+		
+		//updates based on dx and dy (player's speed)
+		
+		SgtPepper.dx = dx;
+		
+		SgtPepper.dy = dy;		
+		
+		Collections.sort(asteroids);
+		
+		collisionHandle();			
+
+		moveAll();
+		
+		numFrames++;
+	}
+	
+	void keepAddingAsteroids()
+	{
+		Random rand = new Random();
+		
+		int randomX,randomVX, randomVY,i,asteroidsToGenerate;
+				
+		asteroidsToGenerate = (int) Math.ceil((numFrames*numFrames/1000));
+		
+		if(asteroidsToGenerate>MAX_ASTEROIDS_GENERATED)
+		{
+			asteroidsToGenerate = MAX_ASTEROIDS_GENERATED;
+		}
+		
+		for(i=0;i<MAX_ASTEROIDS_GENERATED;i++)
+		{
+
+			randomX=rand.nextInt()%500;
+
+			randomVX=rand.nextInt()%5;
+			
+			randomVY=rand.nextInt()%2+5;
+			
+			if(rand.nextInt()%ASTEROID_GENERATION_RATE==1)
+			{
+				addAsteroid(randomX, 0, randomVX, randomVY);	
+			}
+		}		
 	}
 
 	void addAsteroid(int x,int y, int velx, int vely)
@@ -485,49 +589,7 @@ class AllThings implements Constants
  
 		lasers.add(laserToAdd);
 		
-		System.out.println("Laser#: " + (lasers.size()-1));
-	}
-	
-	void update(int dx, int dy, boolean shootLaser)
-	{
-		collisionThisTurn = false;
-		
-		if(shootLaser)
-		{
-			shootLaser();
-		}
-		
-		keepAddingAsteroids();
-		//updates based on dx and dy (player's speed)
-		
-		SgtPepper.dx = dx;
-		
-		SgtPepper.dy=dy;		
-		
-		Collections.sort(asteroids);
-		
-		collisionHandle();			
-
-		moveAll();
-	}
-	
-	void keepAddingAsteroids()
-	{
-		Random rand = new Random();
-		
-		int randomX,randomVX, randomVY;
-		
-		randomX=rand.nextInt()%500;
-
-		randomVX=rand.nextInt()%5;
-		
-		randomVY=rand.nextInt()%2+5;
-		
-		
-		if(rand.nextInt()%ASTEROID_GENERATION_RATE==1)
-		{
-			addAsteroid(randomX, 0, randomVX, randomVY);	
-		}
+		//System.out.println("Laser#: " + (lasers.size()-1));
 	}
 	
 	void moveAll()
@@ -605,8 +667,7 @@ class AllThings implements Constants
 		
 		int laserLength = lasers.size(),j;
 		
-		//First remove unneccessairy lasers
-		
+		//First remove unneccessairy lasers		
 		for(j=0;j<laserLength;j++)
 		{
 
@@ -620,6 +681,7 @@ class AllThings implements Constants
 			}
 		}
 		
+		//Now we will check for asteroid collision and laser-asteroid collision		
 		for(i=0;i<size;i++)
 		{
 			laserLength = lasers.size();
@@ -757,7 +819,7 @@ class AllThings implements Constants
 		{
 			if(didCollide(asteroids.get(i), SgtPepper))
 			{
-				System.out.println("Ship is destroyed asteroid index : "+ i);
+				//System.out.println("Ship is destroyed asteroid index : "+ i);
 				
 				SgtPepper.collideAction();		
 			}	
@@ -784,4 +846,3 @@ class AllThings implements Constants
 		this.SgtPepper.drawObject(g);
 	} 
 }
-
