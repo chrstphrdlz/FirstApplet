@@ -381,7 +381,7 @@ class Asteroid extends GameObject
 	//Precondition: one.x <= two.x, will not collide along y
 	static void collideAsteroids(Asteroid one, Asteroid two)
 	{
-		System.out.println("bounced");
+		//System.out.println("bounced");
 		
 		one.bouncex();
 		two.bouncex();
@@ -408,9 +408,11 @@ class Asteroid extends GameObject
 
 interface Constants
 {
-	final static int ASTEROID_COLLIDE_RADIUS = 23;
+	final static int ASTEROID_COLLIDE_RADIUS = 30;//12;
 	
-	final static int SCREEN_SIZE=500;
+	final static int SHIP_COLLIDE_RADIUS = 20;
+	
+	final static int SCREEN_SIZE = 500;
 	
 	final static int LASER_SPEED = 10;
 	
@@ -459,20 +461,20 @@ class AllThings implements Constants
 	
 	AllThings()
 	{
-		addAsteroid(0, 0, 5,10, 5);
+		addAsteroid(0, 0, 10, 5);
 		
-		addAsteroid(500, 0, 5, -10, 5);	
+		addAsteroid(500, 0, -10, 5);	
 		
-		addAsteroid(200, 0, 5, -10, 5);	
+		addAsteroid(200, 0, -10, 5);	
 		
-		addAsteroid(300, 0, 5, 10, 5);	
+		addAsteroid(300, 0, 10, 5);	
 		
-		SgtPepper = new MainGuy(250, 470, 5);
+		SgtPepper = new MainGuy(250, 470, SHIP_COLLIDE_RADIUS);
 	}
 
-	void addAsteroid(int x,int y, int radius, int velx, int vely)
+	void addAsteroid(int x,int y, int velx, int vely)
 	{
-		Asteroid asteroidToAdd = new Asteroid(x, y, radius,velx, vely);
+		Asteroid asteroidToAdd = new Asteroid(x, y,ASTEROID_COLLIDE_RADIUS,velx, vely);
 		
 		asteroids.add(asteroidToAdd);
 	}
@@ -482,6 +484,8 @@ class AllThings implements Constants
 		Laser laserToAdd = new Laser(SgtPepper.x + SHIP_SIZE/2-LASER_SIZE/2, SgtPepper.y,SgtPepper.dx,SgtPepper.dy - LASER_SPEED, ASTEROID_COLLIDE_RADIUS,"C://Users//Chris//Downloads//laser_bullet.png");
  
 		lasers.add(laserToAdd);
+		
+		System.out.println("Laser#: " + (lasers.size()-1));
 	}
 	
 	void update(int dx, int dy, boolean shootLaser)
@@ -522,7 +526,7 @@ class AllThings implements Constants
 		
 		if(rand.nextInt()%ASTEROID_GENERATION_RATE==1)
 		{
-			addAsteroid(randomX, 0, ASTEROID_COLLIDE_RADIUS, randomVX, randomVY);	
+			addAsteroid(randomX, 0, randomVX, randomVY);	
 		}
 	}
 	
@@ -598,15 +602,23 @@ class AllThings implements Constants
 		{
 			return;
 		}
-		//Asteroid asteroidArray[] = new Asteroid[size];
-				
-		//asteroidArray = asteroids.toArray(asteroidArray);
-		
-		//Laser laserArray [] = new Laser[lasers.size()];
-		
-		//laserArray = lasers.toArray(laserArray);
 		
 		int laserLength = lasers.size(),j;
+		
+		//First remove unneccessairy lasers
+		
+		for(j=0;j<laserLength;j++)
+		{
+
+			if(sideCollisionHandle(lasers.get(j)))
+			{
+				j--;
+				
+				laserLength --;
+				
+				continue;
+			}
+		}
 		
 		for(i=0;i<size;i++)
 		{
@@ -629,9 +641,9 @@ class AllThings implements Constants
 					
 					//System.out.println("Should destroy");
 					
-					size = asteroids.size();
+					size--;
 					
-					laserLength = lasers.size();
+					laserLength --;
 					
 					i--;
 					
@@ -645,20 +657,13 @@ class AllThings implements Constants
 			
 			if(i != size-1 && didCollide(asteroids.get(i), asteroids.get(i+1)) && isOnCollidingPath(asteroids.get(i), asteroids.get(i+1)))
 			{
-				System.out.println("collided");
+				//System.out.println("collided");
 				
 				Asteroid.collideAsteroids(asteroids.get(i), asteroids.get(i+1));				
 			}
 			
-			if(didCollide(asteroids.get(i), SgtPepper))
-			{
-				System.out.println("Ship is destroyed");
-				
-				SgtPepper.collideAction();		
-			}
-			
 			sideCollisionHandle(asteroids.get(i));
-			
+						
 			//System.out.println(" after");
 			
 			size = asteroids.size();
@@ -693,6 +698,22 @@ class AllThings implements Constants
 		}
 	}
 	
+	boolean sideCollisionHandle(Laser collider)
+	{
+		//System.out.println(collider.y);
+		
+		if(collider.y > SCREEN_SIZE || collider.y < 0)
+		{
+			//System.out.println("remove");
+			
+			remove(collider);
+			
+			return true;
+		}
+		
+		return false;
+	}
+	
 	//laser is >= x value of the asteroid
 	static boolean laserHitAsteroid(Laser laser, Asteroid asteroid)
 	{		
@@ -700,16 +721,19 @@ class AllThings implements Constants
 		
 		return Math.abs(yDistance) <= SIZE_OF_ASTEROID && xDistance <= SIZE_OF_ASTEROID/2 && xDistance > - SIZE_OF_ASTEROID/2;
 	}
+	
 	static boolean didCollide(GameObject one, GameObject two)
 	{
 		int distancex = Math.abs(one.x-two.x);
 		
 		int distancey = Math.abs(one.y-two.y);
 		
-		if(distancex < ASTEROID_COLLIDE_RADIUS)
+		int collideDistance = one.collideRadius/2 + two.collideRadius/2;
+		
+		if(distancex < collideDistance )// && distancey < collideDistance)
 		{
-			if(distancex*distancex + distancey*distancey <= 4*ASTEROID_COLLIDE_RADIUS*ASTEROID_COLLIDE_RADIUS)
-			{
+			if(Math.sqrt(distancex*distancex + distancey*distancey) <= collideDistance)
+			{				
 				return true;
 			}
 		}
@@ -725,16 +749,18 @@ class AllThings implements Constants
 		{
 			return;
 		}
-		Asteroid asteroidArray[] = new Asteroid[size];
+	 	Asteroid asteroidArray[] = new Asteroid[size];
 				
 		asteroidArray = asteroids.toArray(asteroidArray);
 		
 		for(i=0;i<size;i++)
 		{
-			if(didCollide(asteroidArray[i], SgtPepper))
+			if(didCollide(asteroids.get(i), SgtPepper))
 			{
-				//System.out.println("collided with player");							
-			}			
+				System.out.println("Ship is destroyed asteroid index : "+ i);
+				
+				SgtPepper.collideAction();		
+			}	
 		}
 	}
 	
